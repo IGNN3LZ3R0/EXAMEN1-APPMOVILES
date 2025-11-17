@@ -1,83 +1,110 @@
-import { useEffect, useState } from "react";
-import { Contratacion } from "../../domain/models/Contratacion";
-import { ContratacionesUseCase } from "../../domain/useCases/contrataciones/ContratacionesUseCase";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { ChatUseCase } from "../../domain/useCases/chat/ChatUseCase";
+import { Mensaje } from "../../domain/models/Mensaje";
 
-const contratacionesUseCase = new ContratacionesUseCase();
+const chatUseCase = new ChatUseCase();
 
-export function useContrataciones(usuarioId?: string, esAsesor: boolean = false) {
-  const [contrataciones, setContrataciones] = useState<Contratacion[]>([]);
+export const useChat = (receptorId?: string) => {
+  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [enviando, setEnviando] = useState(false);
+  const [quienEscribe, setQuienEscribe] = useState<string | null>(null);
+  
+  const typingTimeoutRef = useRef<number | null>(null);
 
+  // Cargar mensajes (solo cuando SÍ hay receptorId)
+  const cargarMensajes = useCallback(async () => {
+    if (!receptorId) return;
+    
+    setCargando(true);
+    const mensajesObtenidos = await chatUseCase.obtenerMensajes(receptorId);
+    setMensajes(mensajesObtenidos);
+    setCargando(false);
+  }, [receptorId]);
+
+  // Obtener usuarios disponibles para nueva conversación
+  const obtenerUsuariosDisponibles = useCallback(async () => {
+    return await chatUseCase.obtenerUsuariosDisponibles();
+  }, []);
+
+  // Enviar mensaje
+  const enviarMensaje = useCallback(
+    async (contenido: string) => {
+      if (!contenido.trim() || !receptorId) {
+        return { success: false, error: "Mensaje vacío o sin receptor" };
+      }
+      
+      setEnviando(true);
+      const resultado = await chatUseCase.enviarMensaje(contenido, receptorId);
+      setEnviando(false);
+      return resultado;
+    },
+    [receptorId]
+  );
+
+  // Notificar que el usuario está escribiendo
+  const notificarEscritura = useCallback(
+    (userEmail: string) => {
+      if (!receptorId) return;
+      chatUseCase.enviarEventoDeEscritura(userEmail, receptorId);
+    },
+    [receptorId]
+  );
+
+  // Effect: Cargar mensajes cuando hay receptorId
   useEffect(() => {
-    if (usuarioId || esAsesor) {
-      cargarContrataciones();
-    }
-  }, [usuarioId, esAsesor]);
-
-  const cargarContrataciones = async () => {
-    setCargando(true);
-    let data: Contratacion[];
-    
-    if (esAsesor) {
-      data = await contratacionesUseCase.obtenerTodasLasContrataciones();
-    } else if (usuarioId) {
-      data = await contratacionesUseCase.obtenerContratacionesPorUsuario(usuarioId);
+    if (receptorId) {
+      cargarMensajes();
     } else {
-      data = [];
+      setCargando(false);
     }
-    
-    setContrataciones(data);
-    setCargando(false);
-  };
+  }, [receptorId, cargarMensajes]);
 
-  const cargarPendientes = async () => {
-    setCargando(true);
-    const data = await contratacionesUseCase.obtenerContratacionesPendientes();
-    setContrataciones(data);
-    setCargando(false);
-  };
+  // Effect: Suscribirse a mensajes en tiempo real
+  useEffect(() => {
+    if (!receptorId) return;
 
-  const crear = async (usuarioId: string, planId: string, notasUsuario?: string) => {
-    const resultado = await contratacionesUseCase.crearContratacion(usuarioId, planId, notasUsuario);
-    if (resultado.success) {
-      await cargarContrataciones();
-    }
-    return resultado;
-  };
+    const desuscribir = chatUseCase.suscribirseAMensajes(
+      receptorId,
+      (nuevoMensaje) => {
+        setMensajes((prev) => {
+          // Evitar duplicados
+          if (prev.some((m) => m.id === nuevoMensaje.id)) {
+            return prev;
+          }
+          return [...prev, nuevoMensaje];
+        });
+      },
+      (payload) => {
+        setQuienEscribe(payload.userEmail);
 
-  const actualizarEstado = async (
-    contratacionId: string,
-    estado: "aprobada" | "rechazada",
-    asesorId: string,
-    notasAsesor?: string
-  ) => {
-    const resultado = await contratacionesUseCase.actualizarEstadoContratacion(
-      contratacionId,
-      estado,
-      asesorId,
-      notasAsesor
+        // Limpiar el indicador de escritura después de 3 segundos
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+
+        typingTimeoutRef.current = setTimeout(() => {
+          setQuienEscribe(null);
+        }, 3000) as unknown as number;
+      }
     );
-    if (resultado.success) {
-      await cargarContrataciones();
-    }
-    return resultado;
-  };
 
-  const cancelar = async (contratacionId: string) => {
-    const resultado = await contratacionesUseCase.cancelarContratacion(contratacionId);
-    if (resultado.success) {
-      await cargarContrataciones();
-    }
-    return resultado;
-  };
+    return () => {
+      desuscribir();
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [receptorId]);
 
   return {
-    contrataciones,
+    mensajes,
     cargando,
-    cargarContrataciones,
-    cargarPendientes,
-    crear,
-    actualizarEstado,
-    cancelar,
+    enviando,
+    quienEscribe,
+    enviarMensaje,
+    notificarEscritura,
+    obtenerUsuariosDisponibles,
+    recargarMensajes: cargarMensajes,
   };
-}
+};

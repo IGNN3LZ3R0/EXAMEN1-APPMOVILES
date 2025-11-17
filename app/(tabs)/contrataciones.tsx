@@ -8,7 +8,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -148,6 +147,7 @@ export default function ContratacionesScreen() {
     });
   };
 
+  // PANTALLA: Requiere login
   if (!usuario) {
     return (
       <View style={globalStyles.containerCentered}>
@@ -166,7 +166,25 @@ export default function ContratacionesScreen() {
     );
   }
 
+  // PANTALLA: Cargando
   if (cargando) {
+    return (
+      <View style={globalStyles.container}>
+        <View style={globalStyles.header}>
+          <Text style={styles.titulo}>
+            {esAsesor ? "Solicitudes" : "Mis Contrataciones"}
+          </Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.textoCargando}>Cargando...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // PANTALLA: Principal
+  return (
     <View style={globalStyles.container}>
       {/* HEADER */}
       <View style={globalStyles.header}>
@@ -199,245 +217,247 @@ export default function ContratacionesScreen() {
       </View>
 
       {/* LISTA */}
-      {cargando ? (
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-          style={{ marginTop: spacing.lg }}
-        />
-      ) : (
-        <FlatList
-          data={contratacionesFiltradas}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: spacing.md }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refrescando}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
+      <FlatList
+        data={contratacionesFiltradas}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ padding: spacing.md }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refrescando}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons
+              name="clipboard-outline"
+              size={80}
+              color={colors.textTertiary}
             />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons
-                name="clipboard-outline"
-                size={80}
-                color={colors.textTertiary}
-              />
-              <Text style={globalStyles.emptyState}>
-                {filtro === "todas"
-                  ? "No hay contrataciones aún"
-                  : `No hay contrataciones ${filtro}s`}
+            <Text style={globalStyles.emptyState}>
+              {filtro === "todas"
+                ? "No hay contrataciones aún"
+                : `No hay contrataciones ${filtro}s`}
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <View style={globalStyles.card}>
+            {/* HEADER CARD */}
+            <View style={styles.cardHeader}>
+              <Text style={styles.nombrePlan} numberOfLines={1}>
+                {item.plan?.nombre || "Plan no disponible"}
+              </Text>
+              {getEstadoBadge(item.estado)}
+            </View>
+
+            {/* INFO USUARIO (Para asesores) */}
+            {esAsesor && item.usuario && (
+              <View style={styles.infoUsuario}>
+                <Ionicons name="person-outline" size={14} color={colors.textSecondary} />
+                <Text style={styles.emailUsuario}>
+                  {item.usuario.email}
+                </Text>
+              </View>
+            )}
+
+            {/* PRECIO */}
+            {item.plan && (
+              <Text style={styles.precio}>
+                ${item.plan.precio.toFixed(2)}/mes
+              </Text>
+            )}
+
+            {/* FECHA */}
+            <View style={styles.fechaContainer}>
+              <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
+              <Text style={styles.fechaTexto}>
+                Solicitado: {formatearFecha(item.fecha_solicitud)}
               </Text>
             </View>
-          }
-          renderItem={({ item }) => (
-            <View style={globalStyles.card}>
-              {/* HEADER CARD */}
-              <View style={styles.cardHeader}>
-                <Text style={styles.nombrePlan} numberOfLines={1}>
-                  {item.plan?.nombre || "Plan no disponible"}
-                </Text>
-                {getEstadoBadge(item.estado)}
+
+            {/* NOTAS USUARIO */}
+            {item.notas_usuario && (
+              <View style={styles.notasContainer}>
+                <Text style={styles.notasLabel}>Notas del usuario:</Text>
+                <Text style={styles.notasTexto}>{item.notas_usuario}</Text>
               </View>
+            )}
 
-              {/* INFO USUARIO (Para asesores) */}
-              {esAsesor && item.usuario && (
-                <View style={styles.infoUsuario}>
-                  <Ionicons name="person-outline" size={14} color={colors.textSecondary} />
-                  <Text style={styles.emailUsuario}>
-                    {item.usuario.email}
-                  </Text>
-                </View>
-              )}
-
-              {/* PRECIO */}
-              {item.plan && (
-                <Text style={styles.precio}>
-                  ${item.plan.precio.toFixed(2)}/mes
-                </Text>
-              )}
-
-              {/* FECHA */}
-              <View style={styles.fechaContainer}>
-                <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
-                <Text style={styles.fechaTexto}>
-                  Solicitado: {formatearFecha(item.fecha_solicitud)}
-                </Text>
+            {/* NOTAS ASESOR (Para usuarios) */}
+            {!esAsesor && item.notas_asesor && (
+              <View style={styles.notasContainer}>
+                <Text style={styles.notasLabel}>Notas del asesor:</Text>
+                <Text style={styles.notasTexto}>{item.notas_asesor}</Text>
               </View>
+            )}
 
-              {/* NOTAS USUARIO */}
-              {item.notas_usuario && (
-                <View style={styles.notasContainer}>
-                  <Text style={styles.notasLabel}>Notas del usuario:</Text>
-                  <Text style={styles.notasTexto}>{item.notas_usuario}</Text>
-                </View>
-              )}
-
-              {/* NOTAS ASESOR (Para usuarios) */}
-              {!esAsesor && item.notas_asesor && (
-                <View style={styles.notasContainer}>
-                  <Text style={styles.notasLabel}>Notas del asesor:</Text>
-                  <Text style={styles.notasTexto}>{item.notas_asesor}</Text>
-                </View>
-              )}
-
-              {/* BOTONES DE ACCIÓN */}
-              {esAsesor && item.estado === "pendiente" ? (
-                <View style={styles.botonesAccion}>
-                  <TouchableOpacity
-                    style={[
-                      globalStyles.button,
-                      globalStyles.buttonSuccess,
-                      styles.botonAccion,
-                    ]}
-                    onPress={() => handleAprobar(item.id)}
-                  >
-                    <Ionicons name="checkmark" size={16} color="white" />
-                    <Text style={globalStyles.buttonText}> Aprobar</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      globalStyles.button,
-                      globalStyles.buttonDanger,
-                      styles.botonAccion,
-                    ]}
-                    onPress={() => handleRechazar(item.id)}
-                  >
-                    <Ionicons name="close" size={16} color="white" />
-                    <Text style={globalStyles.buttonText}> Rechazar</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : !esAsesor && item.estado === "pendiente" ? (
+            {/* BOTONES DE ACCIÓN */}
+            {esAsesor && item.estado === "pendiente" ? (
+              <View style={styles.botonesAccion}>
                 <TouchableOpacity
-                  style={[globalStyles.button, globalStyles.buttonDanger]}
-                  onPress={() => handleCancelar(item.id)}
+                  style={[
+                    globalStyles.button,
+                    globalStyles.buttonSuccess,
+                    styles.botonAccion,
+                  ]}
+                  onPress={() => handleAprobar(item.id)}
                 >
-                  <Text style={globalStyles.buttonText}>Cancelar Solicitud</Text>
+                  <Ionicons name="checkmark" size={16} color="white" />
+                  <Text style={globalStyles.buttonText}> Aprobar</Text>
                 </TouchableOpacity>
-              ) : null}
 
-              {/* VER DETALLES DEL PLAN */}
+                <TouchableOpacity
+                  style={[
+                    globalStyles.button,
+                    globalStyles.buttonDanger,
+                    styles.botonAccion,
+                  ]}
+                  onPress={() => handleRechazar(item.id)}
+                >
+                  <Ionicons name="close" size={16} color="white" />
+                  <Text style={globalStyles.buttonText}> Rechazar</Text>
+                </TouchableOpacity>
+              </View>
+            ) : !esAsesor && item.estado === "pendiente" ? (
               <TouchableOpacity
-                style={[globalStyles.button, globalStyles.buttonOutline, { marginTop: spacing.sm }]}
-                onPress={() => router.push(`/plan/detalle?id=${item.plan_id}`)}
+                style={[globalStyles.button, globalStyles.buttonDanger]}
+                onPress={() => handleCancelar(item.id)}
               >
-                <Text style={globalStyles.buttonTextOutline}>Ver Detalles del Plan</Text>
+                <Text style={globalStyles.buttonText}>Cancelar Solicitud</Text>
               </TouchableOpacity>
-            </View>
-          )}
-        />
-      )}
+            ) : null}
+
+            {/* VER DETALLES DEL PLAN */}
+            <TouchableOpacity
+              style={[globalStyles.button, globalStyles.buttonOutline, { marginTop: spacing.sm }]}
+              onPress={() => router.push(`/plan/detalle?id=${item.plan_id}`)}
+            >
+              <Text style={globalStyles.buttonTextOutline}>Ver Detalles del Plan</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      />
     </View>
   );
-  }
+}
 
-  const styles = StyleSheet.create({
-    titulo: {
-      fontSize: fontSize.xl,
-      fontWeight: "bold",
-      color: colors.textPrimary,
-    },
-    filtrosContainer: {
-      flexDirection: "row",
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      gap: spacing.sm,
-    },
-    filtroBoton: {
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: borderRadius.round,
-      backgroundColor: colors.white,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    filtroActivo: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
-    },
-    filtroTexto: {
-      fontSize: fontSize.sm,
-      color: colors.textSecondary,
-      fontWeight: "500",
-    },
-    filtroTextoActivo: {
-      color: colors.white,
-    },
-    emptyContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      paddingTop: spacing.xxl,
-    },
-    cardHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-      marginBottom: spacing.sm,
-    },
-    nombrePlan: {
-      flex: 1,
-      fontSize: fontSize.lg,
-      fontWeight: "bold",
-      color: colors.textPrimary,
-      marginRight: spacing.sm,
-    },
-    infoUsuario: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      marginBottom: spacing.xs,
-    },
-    emailUsuario: {
-      fontSize: fontSize.sm,
-      color: colors.textSecondary,
-    },
-    precio: {
-      fontSize: fontSize.xl,
-      fontWeight: "bold",
-      color: colors.primary,
-      marginBottom: spacing.sm,
-    },
-    fechaContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      marginBottom: spacing.sm,
-    },
-    fechaTexto: {
-      fontSize: fontSize.sm,
-      color: colors.textSecondary,
-    },
-    notasContainer: {
-      backgroundColor: colors.primaryLight,
-      padding: spacing.sm,
-      borderRadius: borderRadius.sm,
-      marginTop: spacing.sm,
-    },
-    notasLabel: {
-      fontSize: fontSize.xs,
-      color: colors.textSecondary,
-      fontWeight: "600",
-      marginBottom: spacing.xs / 2,
-    },
-    notasTexto: {
-      fontSize: fontSize.sm,
-      color: colors.textPrimary,
-      fontStyle: "italic",
-    },
-    botonesAccion: {
-      flexDirection: "row",
-      gap: spacing.sm,
-      marginTop: spacing.md,
-    },
-    botonAccion: {
-      flex: 1,
-      paddingVertical: spacing.sm,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 6,
-    },
-  });
+const styles = StyleSheet.create({
+  titulo: {
+    fontSize: fontSize.xl,
+    fontWeight: "bold",
+    color: colors.textPrimary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  textoCargando: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#666",
+  },
+  filtrosContainer: {
+    flexDirection: "row",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  filtroBoton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.round,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filtroActivo: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filtroTexto: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: "500",
+  },
+  filtroTextoActivo: {
+    color: colors.white,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: spacing.xxl,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: spacing.sm,
+  },
+  nombrePlan: {
+    flex: 1,
+    fontSize: fontSize.lg,
+    fontWeight: "bold",
+    color: colors.textPrimary,
+    marginRight: spacing.sm,
+  },
+  infoUsuario: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: spacing.xs,
+  },
+  emailUsuario: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  precio: {
+    fontSize: fontSize.xl,
+    fontWeight: "bold",
+    color: colors.primary,
+    marginBottom: spacing.sm,
+  },
+  fechaContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: spacing.sm,
+  },
+  fechaTexto: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  notasContainer: {
+    backgroundColor: colors.primaryLight,
+    padding: spacing.sm,
+    borderRadius: borderRadius.sm,
+    marginTop: spacing.sm,
+  },
+  notasLabel: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    fontWeight: "600",
+    marginBottom: spacing.xs / 2,
+  },
+  notasTexto: {
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
+    fontStyle: "italic",
+  },
+  botonesAccion: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  botonAccion: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+});

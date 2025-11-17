@@ -259,9 +259,14 @@ const styles = StyleSheet.create({
   headerButtons: {
     flexDirection: "row",
     gap: spacing.sm,
+    alignItems: "center",
   },
   botonIcono: {
     padding: spacing.xs,
+  },
+  botonLogin: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   botonCrearContainer: {
     paddingHorizontal: spacing.md,
