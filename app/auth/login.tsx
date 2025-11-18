@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,6 +24,21 @@ export default function LoginScreen() {
 
   const { iniciarSesion } = useAuth();
   const router = useRouter();
+  const params = useLocalSearchParams();
+
+  // Mostrar errores del callback si existen
+  useEffect(() => {
+    if (params.error === "callback_failed" && params.message) {
+      Alert.alert(
+        "Error de Autenticación",
+        String(params.message),
+        [{ text: "OK" }]
+      );
+      
+      // Limpiar parámetros de la URL
+      router.setParams({ error: undefined, message: undefined });
+    }
+  }, [params]);
 
   const handleLogin = async () => {
     if (!email || !password) {

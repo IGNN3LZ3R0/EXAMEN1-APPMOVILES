@@ -55,6 +55,11 @@ export function useAuth() {
     return await authUseCase.actualizarContrasena(nuevaContrasena);
   };
 
+  // NUEVA FUNCIÓN: Verificar contraseña actual sin crear nueva sesión
+  const verificarContrasenaActual = async (password: string) => {
+    return await authUseCase.verificarContrasenaActual(password);
+  };
+
   return {
     usuario,
     cargando,
@@ -64,6 +69,7 @@ export function useAuth() {
     actualizarPerfil,
     restablecerContrasena,
     actualizarContrasena,
+    verificarContrasenaActual, // Nueva función exportada
     esAsesor: usuario?.rol === "asesor_comercial",
   };
 }

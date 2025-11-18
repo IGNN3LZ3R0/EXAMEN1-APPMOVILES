@@ -22,7 +22,7 @@ export default function CambiarPasswordLogueadoScreen() {
   const [mostrarPasswords, setMostrarPasswords] = useState(false);
   const [guardando, setGuardando] = useState(false);
   
-  const { actualizarContrasena, iniciarSesion, usuario } = useAuth();
+  const { actualizarContrasena, verificarContrasenaActual } = useAuth();
   const router = useRouter();
 
   const handleCambiar = async () => {
@@ -50,12 +50,8 @@ export default function CambiarPasswordLogueadoScreen() {
     setGuardando(true);
 
     try {
-      // Primero verificar que la contraseña actual sea correcta
-      if (!usuario?.email) {
-        throw new Error("No se pudo obtener el email del usuario");
-      }
-
-      const verificacion = await iniciarSesion(usuario.email, passwordActual);
+      // Verificar contraseña actual (sin crear nueva sesión)
+      const verificacion = await verificarContrasenaActual(passwordActual);
       
       if (!verificacion.success) {
         Alert.alert("Error", "La contraseña actual es incorrecta");
@@ -63,7 +59,7 @@ export default function CambiarPasswordLogueadoScreen() {
         return;
       }
 
-      // Si la verificación fue exitosa, actualizar la contraseña
+      // Actualizar la contraseña
       const resultado = await actualizarContrasena(passwordNueva);
       
       setGuardando(false);

@@ -2,7 +2,7 @@ import { supabase } from "@/src/data/services/supabaseClient";
 import { Usuario } from "../../models/Usuario";
 
 export class AuthUseCase {
-  // URL para deep links
+  // URL para deep links - SOLO UNA URL
   private readonly REDIRECT_URL = "tigoplanes://auth-callback";
 
   /**
@@ -150,6 +150,34 @@ export class AuthUseCase {
       return { success: true };
     } catch (error: any) {
       console.error("Error al actualizar contraseña:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * NUEVA FUNCIÓN: Verificar contraseña actual sin crear nueva sesión
+   * Usa la API de Supabase para verificar credenciales
+   */
+  async verificarContrasenaActual(password: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        return { success: false, error: "No hay usuario autenticado" };
+      }
+
+      // Crear un cliente temporal para verificar sin afectar la sesión actual
+      const { error } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: password,
+      });
+
+      if (error) {
+        return { success: false, error: "Contraseña incorrecta" };
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error("Error al verificar contraseña:", error);
       return { success: false, error: error.message };
     }
   }
