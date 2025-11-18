@@ -27,13 +27,8 @@ export function useAuth() {
     setCargando(false);
   };
 
-  const registrar = async (
-    email: string, 
-    password: string, 
-    nombreCompleto: string, 
-    telefono: string
-  ) => {
-    return await authUseCase.registrar(email, password, nombreCompleto, telefono);
+  const registrar = async (email: string, password: string, nombre: string, telefono: string) => {
+    return await authUseCase.registrar(email, password, nombre, telefono);
   };
 
   const iniciarSesion = async (email: string, password: string) => {
