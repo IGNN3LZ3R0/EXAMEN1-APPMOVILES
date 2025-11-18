@@ -27,8 +27,13 @@ export function useAuth() {
     setCargando(false);
   };
 
-  const registrar = async (email: string, password: string) => {
-    return await authUseCase.registrar(email, password);
+  const registrar = async (
+    email: string, 
+    password: string, 
+    nombreCompleto: string, 
+    telefono: string
+  ) => {
+    return await authUseCase.registrar(email, password, nombreCompleto, telefono);
   };
 
   const iniciarSesion = async (email: string, password: string) => {
@@ -39,8 +44,8 @@ export function useAuth() {
     return await authUseCase.cerrarSesion();
   };
 
-  const actualizarPerfil = async (nombre: string) => {
-    const resultado = await authUseCase.actualizarPerfil(nombre);
+  const actualizarPerfil = async (nombre: string, telefono?: string) => {
+    const resultado = await authUseCase.actualizarPerfil(nombre, telefono);
     if (resultado.success) {
       await verificarSesion();
     }

@@ -3,17 +3,24 @@ import { Usuario } from "../../models/Usuario";
 
 export class AuthUseCase {
   /**
-   * Registrar nuevo usuario (solo usuario_registrado)
-   * Los asesores se crean directamente en Supabase
+   * Registrar nuevo usuario con nombre completo y teléfono
    */
-  async registrar(email: string, password: string) {
+  async registrar(
+    email: string, 
+    password: string, 
+    nombreCompleto: string, 
+    telefono: string
+  ) {
     try {
+      // 1. Crear usuario en Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            rol: "usuario_registrado", // Siempre usuario registrado
+            rol: "usuario_registrado",
+            nombre: nombreCompleto,
+            telefono: telefono,
           },
         },
       });
@@ -21,13 +28,35 @@ export class AuthUseCase {
       if (authError) throw authError;
       if (!authData.user) throw new Error("No se pudo crear el usuario");
 
-      // Esperar a que el trigger cree la fila en la tabla usuarios
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // 2. Esperar a que el trigger cree la fila en la tabla usuarios
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      // 3. Actualizar la tabla usuarios con nombre y teléfono
+      const { error: updateError } = await supabase
+        .from("usuarios")
+        .update({ 
+          nombre: nombreCompleto,
+          telefono: telefono 
+        })
+        .eq("id", authData.user.id);
+
+      if (updateError) {
+        console.warn("⚠️ Error al actualizar datos adicionales:", updateError);
+      }
 
       return { success: true, user: authData.user };
     } catch (error: any) {
       console.error("❌ Error en registro:", error);
-      return { success: false, error: error.message };
+      
+      // Mensajes de error más amigables
+      let errorMessage = error.message;
+      if (error.message.includes("already registered")) {
+        errorMessage = "Este correo ya está registrado. Por favor inicia sesión.";
+      } else if (error.message.includes("password")) {
+        errorMessage = "La contraseña debe tener al menos 6 caracteres.";
+      }
+      
+      return { success: false, error: errorMessage };
     }
   }
 
@@ -44,7 +73,11 @@ export class AuthUseCase {
       if (error) throw error;
       return { success: true, user: data.user };
     } catch (error: any) {
-      return { success: false, error: error.message };
+      let errorMessage = error.message;
+      if (error.message.includes("Invalid login credentials")) {
+        errorMessage = "Email o contraseña incorrectos.";
+      }
+      return { success: false, error: errorMessage };
     }
   }
 
@@ -93,16 +126,21 @@ export class AuthUseCase {
   }
 
   /**
-   * Actualizar perfil del usuario
+   * Actualizar perfil del usuario (nombre y teléfono)
    */
-  async actualizarPerfil(nombre: string) {
+  async actualizarPerfil(nombre: string, telefono?: string) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No hay usuario autenticado");
 
+      const updateData: any = { nombre };
+      if (telefono) {
+        updateData.telefono = telefono;
+      }
+
       const { error } = await supabase
         .from("usuarios")
-        .update({ nombre })
+        .update(updateData)
         .eq("id", user.id);
 
       if (error) throw error;
