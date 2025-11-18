@@ -2,7 +2,7 @@ import { supabase } from "@/src/data/services/supabaseClient";
 import { Usuario } from "../../models/Usuario";
 
 export class AuthUseCase {
-  // URL para deep links - SOLO UNA URL
+  // URL para deep links
   private readonly REDIRECT_URL = "tigoplanes://auth-callback";
 
   /**
@@ -138,25 +138,34 @@ export class AuthUseCase {
   }
 
   /**
-   * Actualizar contraseña
+   * Actualizar contraseña (NO CIERRA SESIÓN)
    */
   async actualizarContrasena(nuevaContrasena: string) {
     try {
+      console.log("🔐 Actualizando contraseña...");
+      
       const { error } = await supabase.auth.updateUser({
         password: nuevaContrasena,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Error al actualizar:", error);
+        throw error;
+      }
+
+      console.log("✅ Contraseña actualizada exitosamente");
+      
+      // NO cerrar sesión, solo actualizar
       return { success: true };
     } catch (error: any) {
-      console.error("Error al actualizar contraseña:", error);
+      console.error("❌ Error al actualizar contraseña:", error);
       return { success: false, error: error.message };
     }
   }
 
   /**
-   * NUEVA FUNCIÓN: Verificar contraseña actual sin crear nueva sesión
-   * Usa la API de Supabase para verificar credenciales
+   * Verificar contraseña actual
+   * IMPORTANTE: Esta función NO debe afectar la sesión actual
    */
   async verificarContrasenaActual(password: string): Promise<{ success: boolean; error?: string }> {
     try {
@@ -165,19 +174,35 @@ export class AuthUseCase {
         return { success: false, error: "No hay usuario autenticado" };
       }
 
-      // Crear un cliente temporal para verificar sin afectar la sesión actual
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log("🔍 Verificando contraseña para:", user.email);
+
+      // Guardar la sesión actual
+      const { data: { session: sessionActual } } = await supabase.auth.getSession();
+      
+      // Intentar login temporal para verificar
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: user.email,
         password: password,
       });
 
       if (error) {
+        console.log("❌ Contraseña incorrecta");
         return { success: false, error: "Contraseña incorrecta" };
+      }
+
+      console.log("✅ Contraseña verificada correctamente");
+      
+      // Restaurar la sesión original si es diferente
+      if (sessionActual && data.session && sessionActual.access_token !== data.session.access_token) {
+        await supabase.auth.setSession({
+          access_token: sessionActual.access_token,
+          refresh_token: sessionActual.refresh_token,
+        });
       }
 
       return { success: true };
     } catch (error: any) {
-      console.error("Error al verificar contraseña:", error);
+      console.error("❌ Error al verificar contraseña:", error);
       return { success: false, error: error.message };
     }
   }

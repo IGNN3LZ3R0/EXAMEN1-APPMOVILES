@@ -15,32 +15,12 @@ export default function RootLayout() {
       console.log("🔗 Deep link recibido:", url);
       
       try {
-        // Parsear URL completa
-        const parsedUrl = Linking.parse(url);
-        console.log("📦 URL parseada (Linking.parse):", parsedUrl);
+        // Extraer todos los parámetros de la URL (tanto query como hash)
+        const allParams: Record<string, string> = {};
         
-        // También intentar parsear con URL nativa para capturar hash
-        let allParams: any = parsedUrl.queryParams || {};
-        
-        // Si la URL tiene un hash (#), los parámetros pueden estar ahí
-        if (url.includes('#')) {
-          const hashPart = url.split('#')[1];
-          console.log("🔍 Hash encontrado:", hashPart);
-          
-          if (hashPart) {
-            // Parsear parámetros del hash
-            const hashParams = new URLSearchParams(hashPart);
-            hashParams.forEach((value, key) => {
-              allParams[key] = value;
-            });
-          }
-        }
-        
-        // También parsear query params normales si existen
+        // 1. Parsear query params normales (?param=value)
         if (url.includes('?')) {
           const queryPart = url.split('?')[1]?.split('#')[0];
-          console.log("🔍 Query encontrada:", queryPart);
-          
           if (queryPart) {
             const queryParams = new URLSearchParams(queryPart);
             queryParams.forEach((value, key) => {
@@ -49,16 +29,36 @@ export default function RootLayout() {
           }
         }
         
-        console.log("📋 Todos los parámetros combinados:", allParams);
+        // 2. Parsear hash params (#param=value)
+        if (url.includes('#')) {
+          const hashPart = url.split('#')[1];
+          if (hashPart) {
+            const hashParams = new URLSearchParams(hashPart);
+            hashParams.forEach((value, key) => {
+              allParams[key] = value;
+            });
+          }
+        }
         
-        // Manejar tigoplanes://auth-callback
-        if (parsedUrl.hostname === "auth-callback" || parsedUrl.path === "auth-callback") {
+        console.log("📋 Parámetros extraídos:", allParams);
+        
+        // 3. Verificar si es callback de auth
+        const isAuthCallback = 
+          url.includes('auth-callback') || 
+          url.includes('/auth/v1/verify') ||
+          allParams.type === 'recovery' ||
+          allParams.type === 'signup';
+        
+        if (isAuthCallback) {
           console.log("🎯 Redirigiendo a callback con params:", allParams);
           
-          router.push({
+          // Usar replace en lugar de push para evitar que el usuario vuelva atrás
+          router.replace({
             pathname: "/auth/callback",
             params: allParams as any,
           });
+        } else {
+          console.log("ℹ️ Deep link no es de autenticación");
         }
       } catch (error) {
         console.error("❌ Error al parsear deep link:", error);
@@ -79,7 +79,7 @@ export default function RootLayout() {
     return () => {
       subscription.remove();
     };
-  }, []);
+  }, [router]);
 
   // Navegación basada en autenticación
   useEffect(() => {

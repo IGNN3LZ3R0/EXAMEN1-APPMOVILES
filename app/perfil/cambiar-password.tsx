@@ -50,7 +50,10 @@ export default function CambiarPasswordLogueadoScreen() {
     setGuardando(true);
 
     try {
-      // Verificar contraseña actual (sin crear nueva sesión)
+      console.log("🔐 Iniciando cambio de contraseña...");
+      
+      // 1. Verificar contraseña actual
+      console.log("1️⃣ Verificando contraseña actual...");
       const verificacion = await verificarContrasenaActual(passwordActual);
       
       if (!verificacion.success) {
@@ -59,26 +62,40 @@ export default function CambiarPasswordLogueadoScreen() {
         return;
       }
 
-      // Actualizar la contraseña
+      console.log("✅ Contraseña actual verificada");
+
+      // 2. Actualizar la contraseña
+      console.log("2️⃣ Actualizando contraseña...");
       const resultado = await actualizarContrasena(passwordNueva);
       
       setGuardando(false);
 
       if (resultado.success) {
+        console.log("✅ Contraseña actualizada exitosamente");
+        
         Alert.alert(
           "¡Contraseña Actualizada!",
           "Tu contraseña ha sido cambiada exitosamente.",
           [
             {
               text: "OK",
-              onPress: () => router.back(),
+              onPress: () => {
+                // Limpiar campos
+                setPasswordActual("");
+                setPasswordNueva("");
+                setConfirmarPassword("");
+                // Volver atrás
+                router.back();
+              },
             },
           ]
         );
       } else {
+        console.error("❌ Error al actualizar:", resultado.error);
         Alert.alert("Error", resultado.error || "No se pudo cambiar la contraseña");
       }
     } catch (error: any) {
+      console.error("❌ Error inesperado:", error);
       setGuardando(false);
       Alert.alert("Error", error.message || "Ocurrió un error al cambiar la contraseña");
     }
@@ -119,6 +136,7 @@ export default function CambiarPasswordLogueadoScreen() {
               onChangeText={setPasswordActual}
               secureTextEntry={!mostrarPasswords}
               autoComplete="password"
+              editable={!guardando}
             />
           </View>
         </View>
@@ -136,6 +154,7 @@ export default function CambiarPasswordLogueadoScreen() {
               onChangeText={setPasswordNueva}
               secureTextEntry={!mostrarPasswords}
               autoComplete="password"
+              editable={!guardando}
             />
           </View>
         </View>
@@ -151,6 +170,7 @@ export default function CambiarPasswordLogueadoScreen() {
               onChangeText={setConfirmarPassword}
               secureTextEntry={!mostrarPasswords}
               autoComplete="password"
+              editable={!guardando}
             />
           </View>
         </View>
@@ -159,6 +179,7 @@ export default function CambiarPasswordLogueadoScreen() {
         <TouchableOpacity
           style={styles.toggleMostrar}
           onPress={() => setMostrarPasswords(!mostrarPasswords)}
+          disabled={guardando}
         >
           <Ionicons 
             name={mostrarPasswords ? "eye-off-outline" : "eye-outline"} 
@@ -177,7 +198,12 @@ export default function CambiarPasswordLogueadoScreen() {
           disabled={guardando}
         >
           {guardando ? (
-            <ActivityIndicator color={colors.white} />
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator color={colors.white} />
+              <Text style={[globalStyles.buttonText, { marginLeft: 8 }]}>
+                Actualizando...
+              </Text>
+            </View>
           ) : (
             <>
               <Ionicons name="checkmark-circle-outline" size={20} color={colors.white} />
@@ -279,6 +305,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     height: 52,
     marginTop: spacing.sm,
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   infoContainer: {
     flexDirection: "row",

@@ -17,7 +17,6 @@ export default function AuthCallbackScreen() {
   const procesadoRef = useRef(false);
 
   useEffect(() => {
-    // Evitar procesamiento duplicado
     if (procesadoRef.current) {
       console.log("⚠️ Callback ya procesado, ignorando...");
       return;
@@ -31,84 +30,60 @@ export default function AuthCallbackScreen() {
     try {
       console.log("📥 Parámetros recibidos:", JSON.stringify(params, null, 2));
 
-      // Extraer tokens de diferentes formatos
       const accessToken = params.access_token as string;
       const refreshToken = params.refresh_token as string;
-      const tokenHash = params.token_hash as string;
       const type = (params.type || params.event_type) as string;
+      const error = params.error as string;
+      const errorDescription = params.error_description as string;
 
-      console.log("🔍 Tokens encontrados:", {
-        accessToken: accessToken ? "✓" : "✗",
-        refreshToken: refreshToken ? "✓" : "✗",
-        tokenHash: tokenHash ? "✓" : "✗",
-        type,
-      });
+      // Verificar si hay error
+      if (error) {
+        console.error("❌ Error en callback:", error, errorDescription);
+        throw new Error(errorDescription || error);
+      }
 
-      // CASO 1: Recuperación de contraseña con access_token y refresh_token
-      if (accessToken && refreshToken) {
-        console.log("💾 Estableciendo sesión con tokens completos...");
+      // CASO 1: Recuperación de contraseña con tokens completos
+      if (accessToken && refreshToken && type === "recovery") {
+        console.log("💾 Estableciendo sesión para recuperación de contraseña...");
         
-        const { error } = await supabase.auth.setSession({
+        const { error: sessionError } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
 
-        if (error) {
-          console.error("❌ Error al establecer sesión:", error);
-          throw new Error("No se pudo establecer la sesión: " + error.message);
+        if (sessionError) {
+          console.error("❌ Error al establecer sesión:", sessionError);
+          throw new Error("No se pudo establecer la sesión: " + sessionError.message);
         }
 
-        console.log("✅ Sesión establecida exitosamente");
+        console.log("✅ Sesión establecida para recuperación");
         
-        // Redirigir a cambiar contraseña después de un momento
+        // Redirigir a cambiar contraseña
         setTimeout(() => {
           router.replace("/auth/nueva-password");
         }, 500);
         return;
       }
 
-      // CASO 2: Token hash (para verificación o recuperación)
-      if (tokenHash) {
-        console.log("🔐 Verificando token hash...");
+      // CASO 2: Confirmación de email (signup)
+      if (type === "signup" || type === "email") {
+        console.log("✅ Email confirmado exitosamente");
         
-        let otpType: 'signup' | 'recovery' | 'email' = 'email';
-        
-        if (type === "recovery" || type === "password_recovery") {
-          otpType = 'recovery';
-        } else if (type === "signup" || type === "email") {
-          otpType = 'signup';
-        }
-
-        console.log("📝 Tipo de OTP:", otpType);
-
-        const { data, error } = await supabase.auth.verifyOtp({
-          token_hash: tokenHash,
-          type: otpType,
-        });
-
-        if (error) {
-          console.error("❌ Error al verificar OTP:", error);
-          throw new Error("Token inválido o expirado: " + error.message);
-        }
-
-        console.log("✅ OTP verificado:", data);
-        
-        if (otpType === 'recovery') {
-          setTimeout(() => {
-            router.replace("/auth/nueva-password");
-          }, 500);
-        } else {
-          setTimeout(() => {
-            router.replace("/auth/login");
-          }, 500);
-        }
+        setTimeout(() => {
+          router.replace({
+            pathname: "/auth/login",
+            params: {
+              message: "Email confirmado. Ya puedes iniciar sesión.",
+            },
+          });
+        }, 500);
         return;
       }
 
-      // CASO 3: Ningún token válido encontrado
+      // CASO 3: Si no hay información suficiente
+      console.warn("⚠️ Callback sin información suficiente");
       throw new Error(
-        "No se encontraron tokens válidos en los parámetros. " +
-        "Parámetros recibidos: " + Object.keys(params).join(", ")
+        "No se pudo procesar el enlace de autenticación. Por favor, intenta nuevamente."
       );
 
     } catch (error: any) {
