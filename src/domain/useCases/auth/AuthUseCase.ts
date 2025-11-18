@@ -22,11 +22,8 @@ export class AuthUseCase {
       if (authError) throw authError;
       if (!authData.user) throw new Error("No se pudo crear el usuario");
 
-      // Esperar a que el trigger cree la fila en la tabla usuarios
-      await new Promise((resolve) => setTimeout(resolve, 200));
-
-      // Actualizar el perfil con nombre y teléfono
-      await this.actualizarPerfil(nombre, telefono);
+      // El trigger handle_new_user() copiará automáticamente
+      // nombre, telefono y rol desde raw_user_meta_data
 
       return { success: true, user: authData.user };
     } catch (error: any) {
