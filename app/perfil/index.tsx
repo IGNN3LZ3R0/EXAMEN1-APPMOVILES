@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from "../../src/presentation/hooks/useAuth";
 import { globalStyles } from "../../src/presentation/styles/globalStyles";
 import { colors, fontSize, spacing, borderRadius } from "../../src/presentation/styles/theme";
@@ -22,9 +23,10 @@ export default function PerfilScreen() {
   const [nombre, setNombre] = useState(usuario?.nombre || "");
   const [telefono, setTelefono] = useState(usuario?.telefono || "");
   const [guardando, setGuardando] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
 
   const validarTelefono = (tel: string) => {
-    if (!tel.trim()) return true; // Opcional
+    if (!tel.trim()) return true;
     const regex = /^(\+593|0)?[9][0-9]{8}$/;
     return regex.test(tel.replace(/\s/g, ""));
   };
@@ -48,7 +50,8 @@ export default function PerfilScreen() {
     setGuardando(false);
 
     if (resultado.success) {
-      Alert.alert("Éxito", "Perfil actualizado correctamente");
+      Alert.alert("✅ Éxito", "Perfil actualizado correctamente");
+      setModoEdicion(false);
     } else {
       Alert.alert("Error", resultado.error || "No se pudo actualizar el perfil");
     }
@@ -59,16 +62,16 @@ export default function PerfilScreen() {
 
     Alert.alert(
       "Restablecer Contraseña",
-      `Se enviará un email a ${usuario.email} con las instrucciones para restablecer tu contraseña. ¿Deseas continuar?`,
+      `Se enviará un email a ${usuario.email} con las instrucciones.\n\n¿Deseas continuar?`,
       [
         { text: "Cancelar", style: "cancel" },
         {
-          text: "Enviar",
+          text: "Enviar Email",
           onPress: async () => {
             const resultado = await restablecerContrasena(usuario.email);
             if (resultado.success) {
               Alert.alert(
-                "Email Enviado",
+                "📧 Email Enviado",
                 "Revisa tu correo electrónico para restablecer tu contraseña"
               );
             } else {
@@ -88,242 +91,452 @@ export default function PerfilScreen() {
     );
   }
 
-  return (
-    <ScrollView style={globalStyles.container} showsVerticalScrollIndicator={false}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.titulo}>Mi Perfil</Text>
-        <View style={{ width: 24 }} />
-      </View>
+  const iniciales = (usuario.nombre || usuario.email)
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
 
-      <View style={globalStyles.contentPadding}>
-        {/* AVATAR */}
-        <View style={styles.avatarContainer}>
-          <View style={[styles.avatar, esAsesor && styles.avatarAsesor]}>
-            <Ionicons
-              name={esAsesor ? "briefcase" : "person"}
-              size={50}
-              color={colors.white}
-            />
+  return (
+    <View style={globalStyles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* HEADER CON GRADIENTE */}
+        <LinearGradient
+          colors={esAsesor ? [colors.primary, '#00509E'] : [colors.secondary, '#00C8F0']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color={colors.white} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Mi Perfil</Text>
+            <TouchableOpacity 
+              onPress={() => setModoEdicion(!modoEdicion)}
+              style={styles.editButton}
+            >
+              <Ionicons 
+                name={modoEdicion ? "close-circle" : "create"} 
+                size={24} 
+                color={colors.white} 
+              />
+            </TouchableOpacity>
           </View>
-          <View style={[globalStyles.badge, esAsesor ? styles.badgeAsesor : styles.badgeUsuario]}>
-            <Text style={styles.badgeText}>
-              {esAsesor ? "Asesor Comercial" : "Usuario Registrado"}
+
+          {/* AVATAR Y ROL */}
+          <View style={styles.avatarSection}>
+            <View style={styles.avatarContainer}>
+              <LinearGradient
+                colors={['#FFD100', '#FFE44D']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.avatarGradient}
+              >
+                <Text style={styles.avatarText}>{iniciales}</Text>
+              </LinearGradient>
+            </View>
+
+            <View style={styles.rolBadge}>
+              <Ionicons 
+                name={esAsesor ? "shield-checkmark" : "person"} 
+                size={16} 
+                color={colors.white} 
+              />
+              <Text style={styles.rolTexto}>
+                {esAsesor ? "Asesor Comercial" : "Usuario Registrado"}
+              </Text>
+            </View>
+
+            <Text style={styles.nombreHeader}>
+              {usuario.nombre || "Usuario"}
             </Text>
           </View>
-          <Text style={styles.nombrePerfil}>
-            {usuario.nombre || "Usuario"}
-          </Text>
-        </View>
+        </LinearGradient>
 
-        {/* INFORMACIÓN DE SOLO LECTURA */}
-        <View style={styles.seccion}>
-          <Text style={styles.seccionTitulo}>📧 Información de Cuenta</Text>
-          <View style={styles.infoCard}>
-            <Ionicons name="mail" size={20} color={colors.primary} />
-            <View style={styles.infoTexto}>
-              <Text style={styles.infoLabel}>Email</Text>
-              <Text style={styles.infoValor}>{usuario.email}</Text>
+        {/* CONTENIDO */}
+        <View style={styles.content}>
+          {/* ESPACIADOR */}
+          <View style={styles.espaciador} />
+          {/* INFORMACIÓN DE CUENTA */}
+          <View style={styles.seccion}>
+            <View style={styles.seccionHeader}>
+              <Ionicons name="information-circle" size={20} color={colors.primary} />
+              <Text style={styles.seccionTitulo}>Información de Cuenta</Text>
+            </View>
+
+            <View style={styles.card}>
+              <View style={styles.cardRow}>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="mail" size={20} color={colors.secondary} />
+                </View>
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardLabel}>Email</Text>
+                  <Text style={styles.cardValue}>{usuario.email}</Text>
+                </View>
+                <View style={styles.verificadoBadge}>
+                  <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                </View>
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* EDITAR NOMBRE */}
-        <View style={styles.seccion}>
-          <Text style={styles.seccionTitulo}>👤 Información Personal</Text>
-          
-          <Text style={styles.label}>Nombre Completo</Text>
-          <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Ingresa tu nombre completo"
-              value={nombre}
-              onChangeText={setNombre}
-            />
-          </View>
+          {/* INFORMACIÓN PERSONAL */}
+          <View style={styles.seccion}>
+            <View style={styles.seccionHeader}>
+              <Ionicons name="person-circle" size={20} color={colors.primary} />
+              <Text style={styles.seccionTitulo}>Información Personal</Text>
+            </View>
 
-          <Text style={styles.label}>Teléfono</Text>
-          <View style={styles.inputContainer}>
-            <Ionicons name="call-outline" size={20} color={colors.textSecondary} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="+593 99 123 4567"
-              value={telefono}
-              onChangeText={setTelefono}
-              keyboardType="phone-pad"
-            />
-          </View>
+            {/* NOMBRE */}
+            <View style={styles.card}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Nombre Completo</Text>
+                {modoEdicion ? (
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="person-outline" size={20} color={colors.textSecondary} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ingresa tu nombre"
+                      value={nombre}
+                      onChangeText={setNombre}
+                      placeholderTextColor={colors.textTertiary}
+                    />
+                  </View>
+                ) : (
+                  <Text style={styles.inputValue}>{nombre || "No especificado"}</Text>
+                )}
+              </View>
 
-          <TouchableOpacity
-            style={[globalStyles.button, globalStyles.buttonPrimary]}
-            onPress={handleGuardarPerfil}
-            disabled={guardando}
-          >
-            {guardando ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <>
-                <Ionicons name="save" size={20} color={colors.white} />
-                <Text style={[globalStyles.buttonText, { marginLeft: 8 }]}>
-                  Guardar Cambios
-                </Text>
-              </>
+              {/* TELÉFONO */}
+              <View style={styles.divider} />
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Teléfono</Text>
+                {modoEdicion ? (
+                  <>
+                    <View style={styles.inputWrapper}>
+                      <Ionicons name="call-outline" size={20} color={colors.textSecondary} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="+593 999123456"
+                        value={telefono}
+                        onChangeText={setTelefono}
+                        keyboardType="phone-pad"
+                        placeholderTextColor={colors.textTertiary}
+                      />
+                    </View>
+                    <Text style={styles.helperText}>Formato: +593 seguido de 9 dígitos</Text>
+                  </>
+                ) : (
+                  <Text style={styles.inputValue}>{telefono || "No especificado"}</Text>
+                )}
+              </View>
+            </View>
+
+            {/* BOTÓN GUARDAR */}
+            {modoEdicion && (
+              <TouchableOpacity
+                style={styles.botonGuardar}
+                onPress={handleGuardarPerfil}
+                disabled={guardando}
+              >
+                <LinearGradient
+                  colors={[colors.success, '#66BB6A']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.botonGradient}
+                >
+                  {guardando ? (
+                    <ActivityIndicator color={colors.white} />
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle" size={20} color={colors.white} />
+                      <Text style={styles.botonTexto}>Guardar Cambios</Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
-        </View>
+          </View>
 
-        {/* SEGURIDAD */}
-        <View style={styles.seccion}>
-          <Text style={styles.seccionTitulo}>🔒 Seguridad</Text>
-          <TouchableOpacity
-            style={[globalStyles.button, globalStyles.buttonOutline]}
-            onPress={handleRestablecerContrasena}
-          >
-            <Ionicons name="key-outline" size={20} color={colors.primary} />
-            <Text style={[globalStyles.buttonTextOutline, { marginLeft: 8 }]}>
-              Restablecer Contraseña
+          {/* SEGURIDAD */}
+          <View style={styles.seccion}>
+            <View style={styles.seccionHeader}>
+              <Ionicons name="shield-checkmark" size={20} color={colors.primary} />
+              <Text style={styles.seccionTitulo}>Seguridad</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.opcionCard}
+              onPress={handleRestablecerContrasena}
+            >
+              <View style={styles.opcionIconContainer}>
+                <Ionicons name="key" size={24} color={colors.primary} />
+              </View>
+              <View style={styles.opcionContent}>
+                <Text style={styles.opcionTitulo}>Restablecer Contraseña</Text>
+                <Text style={styles.opcionDescripcion}>
+                  Enviaremos un enlace a tu correo
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* INFO ADICIONAL */}
+          <View style={styles.infoBox}>
+            <Ionicons name="shield-checkmark-outline" size={20} color={colors.info} />
+            <Text style={styles.infoTexto}>
+              Tu información está protegida y encriptada
             </Text>
-          </TouchableOpacity>
+          </View>
         </View>
-
-        {/* INFO ADICIONAL */}
-        <View style={styles.infoAdicional}>
-          <Ionicons name="information-circle" size={16} color={colors.info} />
-          <Text style={styles.infoAdicionalTexto}>
-            Al restablecer la contraseña, recibirás un email con las instrucciones
-          </Text>
-        </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
+  headerGradient: {
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl + spacing.lg,
+  },
+  headerTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: spacing.md,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
   },
-  titulo: {
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
     fontSize: fontSize.xl,
     fontWeight: "bold",
-    color: colors.textPrimary,
+    color: colors.white,
+  },
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarSection: {
+    alignItems: "center",
   },
   avatarContainer: {
-    alignItems: "center",
-    marginVertical: spacing.xl,
+    marginBottom: spacing.md,
   },
-  avatar: {
+  avatarGradient: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: colors.secondary,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: spacing.md,
+    borderWidth: 4,
+    borderColor: colors.white,
   },
-  avatarAsesor: {
-    backgroundColor: colors.primary,
+  avatarText: {
+    fontSize: fontSize.xxxl,
+    fontWeight: "900",
+    color: colors.primary,
   },
-  badgeAsesor: {
-    backgroundColor: colors.primary,
+  rolBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.round,
+    marginBottom: spacing.sm,
   },
-  badgeUsuario: {
-    backgroundColor: colors.secondary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.round,
-  },
-  badgeText: {
+  rolTexto: {
     fontSize: fontSize.sm,
+    fontWeight: "700",
     color: colors.white,
-    fontWeight: "600",
   },
-  nombrePerfil: {
+  nombreHeader: {
     fontSize: fontSize.xl,
     fontWeight: "bold",
-    color: colors.textPrimary,
-    marginTop: spacing.sm,
+    color: colors.white,
+  },
+  content: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+  },
+  espaciador: {
+    height: spacing.md,
   },
   seccion: {
     marginBottom: spacing.lg,
   },
-  seccionTitulo: {
-    fontSize: fontSize.lg,
-    fontWeight: "600",
-    color: colors.textPrimary,
+  seccionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  infoCard: {
-    flexDirection: "row",
+  seccionTitulo: {
+    fontSize: fontSize.md,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  card: {
     backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
     padding: spacing.md,
-    borderRadius: borderRadius.md,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primaryLight,
+    justifyContent: "center",
     alignItems: "center",
   },
-  infoTexto: {
-    marginLeft: spacing.md,
+  cardContent: {
     flex: 1,
   },
-  infoLabel: {
+  cardLabel: {
     fontSize: fontSize.xs,
     color: colors.textSecondary,
-    marginBottom: spacing.xs / 2,
+    marginBottom: 2,
   },
-  infoValor: {
+  cardValue: {
+    fontSize: fontSize.md,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  verificadoBadge: {
+    width: 24,
+    height: 24,
+  },
+  inputGroup: {
+    marginBottom: spacing.sm,
+  },
+  inputLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: "600",
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  input: {
+    flex: 1,
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
+  },
+  inputValue: {
     fontSize: fontSize.md,
     color: colors.textPrimary,
     fontWeight: "500",
   },
-  label: {
-    fontSize: fontSize.sm,
+  helperText: {
+    fontSize: fontSize.xs,
     color: colors.textSecondary,
-    marginBottom: spacing.xs,
-    fontWeight: "600",
+    marginTop: spacing.xs,
+    fontStyle: "italic",
   },
-  inputContainer: {
+  divider: {
+    height: 1,
+    backgroundColor: colors.borderLight,
+    marginVertical: spacing.md,
+  },
+  botonGuardar: {
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    marginTop: spacing.md,
+  },
+  botonGradient: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.md,
-  },
-  inputIcon: {
-    marginRight: spacing.sm,
-  },
-  input: {
-    flex: 1,
+    justifyContent: "center",
+    gap: spacing.sm,
     paddingVertical: spacing.md,
-    fontSize: fontSize.md,
-    color: colors.textPrimary,
   },
-  infoAdicional: {
+  botonTexto: {
+    fontSize: fontSize.md,
+    fontWeight: "700",
+    color: colors.white,
+  },
+  opcionCard: {
     flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  opcionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  opcionContent: {
+    flex: 1,
+  },
+  opcionTitulo: {
+    fontSize: fontSize.md,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  opcionDescripcion: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  infoBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
     backgroundColor: colors.primaryLight,
     padding: spacing.md,
     borderRadius: borderRadius.md,
-    marginTop: spacing.md,
-    marginBottom: spacing.xl,
-    alignItems: "flex-start",
+    borderLeftWidth: 4,
+    borderLeftColor: colors.info,
   },
-  infoAdicionalTexto: {
+  infoTexto: {
     flex: 1,
     fontSize: fontSize.sm,
     color: colors.textSecondary,
-    marginLeft: spacing.sm,
+    lineHeight: 20,
   },
 });

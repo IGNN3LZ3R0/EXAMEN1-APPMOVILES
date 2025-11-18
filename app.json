@@ -10,7 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tigo.planes"
+      "bundleIdentifier": "com.tigo.planes",
+      "associatedDomains": [
+        "applinks:tigoplanes.app",
+        "applinks:*.supabase.co"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -23,6 +27,26 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "READ_MEDIA_IMAGES"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "tigoplanes"
+            },
+            {
+              "scheme": "https",
+              "host": "*.supabase.co",
+              "pathPrefix": "/auth/v1/verify"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
