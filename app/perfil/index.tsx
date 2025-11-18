@@ -1,5 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -12,9 +10,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from "../../src/presentation/hooks/useAuth";
 import { globalStyles } from "../../src/presentation/styles/globalStyles";
-import { borderRadius, colors, fontSize, spacing } from "../../src/presentation/styles/theme";
+import { colors, fontSize, spacing, borderRadius } from "../../src/presentation/styles/theme";
 
 export default function PerfilScreen() {
   const { usuario, actualizarPerfil, esAsesor } = useAuth();
@@ -87,14 +87,14 @@ export default function PerfilScreen() {
               <Ionicons name="arrow-back" size={24} color={colors.white} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Mi Perfil</Text>
-            <TouchableOpacity
+            <TouchableOpacity 
               onPress={() => setModoEdicion(!modoEdicion)}
               style={styles.editButton}
             >
-              <Ionicons
-                name={modoEdicion ? "close-circle" : "create"}
-                size={24}
-                color={colors.white}
+              <Ionicons 
+                name={modoEdicion ? "close-circle" : "create"} 
+                size={24} 
+                color={colors.white} 
               />
             </TouchableOpacity>
           </View>
@@ -113,10 +113,10 @@ export default function PerfilScreen() {
             </View>
 
             <View style={styles.rolBadge}>
-              <Ionicons
-                name={esAsesor ? "shield-checkmark" : "person"}
-                size={16}
-                color={colors.white}
+              <Ionicons 
+                name={esAsesor ? "shield-checkmark" : "person"} 
+                size={16} 
+                color={colors.white} 
               />
               <Text style={styles.rolTexto}>
                 {esAsesor ? "Asesor Comercial" : "Usuario Registrado"}
@@ -242,7 +242,7 @@ export default function PerfilScreen() {
             </View>
             <TouchableOpacity
               style={styles.opcionCard}
-              onPress={() => router.push("/perfil/cambiar-password")}
+              onPress={() => router.push("/perfil/cambiar-password" as any)}
             >
               <View style={styles.opcionIconContainer}>
                 <Ionicons name="key" size={24} color={colors.primary} />
