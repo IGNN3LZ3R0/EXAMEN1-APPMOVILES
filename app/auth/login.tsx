@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -11,10 +12,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../src/presentation/hooks/useAuth";
 import { globalStyles } from "../../src/presentation/styles/globalStyles";
-import { colors, fontSize, spacing, borderRadius } from "../../src/presentation/styles/theme";
+import { borderRadius, colors, fontSize, spacing } from "../../src/presentation/styles/theme";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -43,7 +43,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={globalStyles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
@@ -89,14 +89,14 @@ export default function LoginScreen() {
                 secureTextEntry={!mostrarPassword}
                 autoComplete="password"
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setMostrarPassword(!mostrarPassword)}
                 style={styles.eyeIcon}
               >
-                <Ionicons 
-                  name={mostrarPassword ? "eye-off-outline" : "eye-outline"} 
-                  size={20} 
-                  color={colors.textSecondary} 
+                <Ionicons
+                  name={mostrarPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color={colors.textSecondary}
                 />
               </TouchableOpacity>
             </View>
@@ -124,8 +124,8 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           {/* LINK OLVIDÉ CONTRASEÑA */}
-          <TouchableOpacity 
-            onPress={() => router.push("/auth/cambiar-password")}
+          <TouchableOpacity
+            onPress={() => router.push("/auth/recuperar-password")}
             style={styles.linkContainer}
           >
             <Text style={styles.linkOlvide}>¿Olvidaste tu contraseña?</Text>
@@ -139,7 +139,7 @@ export default function LoginScreen() {
           </View>
 
           {/* LINK REGISTRO */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[globalStyles.button, globalStyles.buttonOutline]}
             onPress={() => router.push("/auth/registro")}
           >

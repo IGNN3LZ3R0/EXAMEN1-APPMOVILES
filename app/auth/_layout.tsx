@@ -9,7 +9,7 @@ export default function AuthLayout() {
     >
       <Stack.Screen name="login" />
       <Stack.Screen name="registro" />
-      <Stack.Screen name="cambiar-password" />
+      <Stack.Screen name="recuperar-password" />
     </Stack>
   );
 }

@@ -20,14 +20,20 @@ export default function AuthCallbackScreen() {
   const [procesando, setProcesando] = useState(true);
   const [mensaje, setMensaje] = useState("Procesando autenticación...");
   const [debugInfo, setDebugInfo] = useState<string>("");
+  const [yaProcesoRef, setYaProceso] = useState(false);
 
   useEffect(() => {
-    procesarCallback();
-  }, [params]);
+    if (!yaProcesoRef) {
+      setYaProceso(true);
+      procesarCallback();
+    }
+  }, []);
 
   const procesarCallback = async () => {
     try {
-      console.log("📥 Todos los parámetros recibidos:", JSON.stringify(params, null, 2));
+      const debugData = JSON.stringify(params, null, 2);
+      setDebugInfo(debugData);
+      console.log("📥 Todos los parámetros recibidos:", debugData);
 
       // Intentar extraer todos los posibles formatos de token
       const token = params.token || 
@@ -159,23 +165,43 @@ export default function AuthCallbackScreen() {
   };
 
   return (
-    <View style={globalStyles.containerCentered}>
-      <View style={styles.iconContainer}>
-        {procesando ? (
-          <ActivityIndicator size="large" color={colors.primary} />
-        ) : (
-          <Ionicons name="alert-circle-outline" size={80} color={colors.danger} />
+    <ScrollView style={globalStyles.container} contentContainerStyle={{ flexGrow: 1 }}>
+      <View style={globalStyles.containerCentered}>
+        <View style={styles.iconContainer}>
+          {procesando ? (
+            <ActivityIndicator size="large" color={colors.primary} />
+          ) : (
+            <Ionicons name="alert-circle-outline" size={80} color={colors.danger} />
+          )}
+        </View>
+        
+        <Text style={styles.mensaje}>{mensaje}</Text>
+        
+        {procesando && (
+          <Text style={styles.submensaje}>
+            Por favor espera un momento...
+          </Text>
+        )}
+
+        {/* Información de debug */}
+        {debugInfo && (
+          <View style={styles.debugContainer}>
+            <Text style={styles.debugTitle}>🔍 Debug Info:</Text>
+            <ScrollView style={styles.debugScroll}>
+              <Text style={styles.debugText}>{debugInfo}</Text>
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.debugButton}
+              onPress={() => {
+                Alert.alert("Parámetros Completos", debugInfo);
+              }}
+            >
+              <Text style={styles.debugButtonText}>Copiar Info</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
-      
-      <Text style={styles.mensaje}>{mensaje}</Text>
-      
-      {procesando && (
-        <Text style={styles.submensaje}>
-          Por favor espera un momento...
-        </Text>
-      )}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -194,5 +220,43 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textSecondary,
     textAlign: "center",
+  },
+  debugContainer: {
+    marginTop: spacing.xl,
+    width: "100%",
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  debugTitle: {
+    fontSize: fontSize.md,
+    fontWeight: "bold",
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  debugScroll: {
+    maxHeight: 200,
+    backgroundColor: colors.background,
+    borderRadius: 4,
+    padding: spacing.sm,
+  },
+  debugText: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    fontFamily: "monospace",
+  },
+  debugButton: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.primary,
+    padding: spacing.sm,
+    borderRadius: 4,
+    alignItems: "center",
+  },
+  debugButtonText: {
+    color: colors.white,
+    fontSize: fontSize.sm,
+    fontWeight: "600",
   },
 });

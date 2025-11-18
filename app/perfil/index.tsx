@@ -1,3 +1,5 @@
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -10,14 +12,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from "../../src/presentation/hooks/useAuth";
 import { globalStyles } from "../../src/presentation/styles/globalStyles";
-import { colors, fontSize, spacing, borderRadius } from "../../src/presentation/styles/theme";
+import { borderRadius, colors, fontSize, spacing } from "../../src/presentation/styles/theme";
 
 export default function PerfilScreen() {
-  const { usuario, actualizarPerfil, restablecerContrasena, esAsesor } = useAuth();
+  const { usuario, actualizarPerfil, esAsesor } = useAuth();
   const router = useRouter();
 
   const [nombre, setNombre] = useState(usuario?.nombre || "");
@@ -57,32 +57,6 @@ export default function PerfilScreen() {
     }
   };
 
-  const handleRestablecerContrasena = async () => {
-    if (!usuario?.email) return;
-
-    Alert.alert(
-      "Restablecer Contraseña",
-      `Se enviará un email a ${usuario.email} con las instrucciones.\n\n¿Deseas continuar?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Enviar Email",
-          onPress: async () => {
-            const resultado = await restablecerContrasena(usuario.email);
-            if (resultado.success) {
-              Alert.alert(
-                "📧 Email Enviado",
-                "Revisa tu correo electrónico para restablecer tu contraseña"
-              );
-            } else {
-              Alert.alert("Error", resultado.error || "No se pudo enviar el email");
-            }
-          },
-        },
-      ]
-    );
-  };
-
   if (!usuario) {
     return (
       <View style={globalStyles.loadingContainer}>
@@ -113,14 +87,14 @@ export default function PerfilScreen() {
               <Ionicons name="arrow-back" size={24} color={colors.white} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Mi Perfil</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setModoEdicion(!modoEdicion)}
               style={styles.editButton}
             >
-              <Ionicons 
-                name={modoEdicion ? "close-circle" : "create"} 
-                size={24} 
-                color={colors.white} 
+              <Ionicons
+                name={modoEdicion ? "close-circle" : "create"}
+                size={24}
+                color={colors.white}
               />
             </TouchableOpacity>
           </View>
@@ -139,10 +113,10 @@ export default function PerfilScreen() {
             </View>
 
             <View style={styles.rolBadge}>
-              <Ionicons 
-                name={esAsesor ? "shield-checkmark" : "person"} 
-                size={16} 
-                color={colors.white} 
+              <Ionicons
+                name={esAsesor ? "shield-checkmark" : "person"}
+                size={16}
+                color={colors.white}
               />
               <Text style={styles.rolTexto}>
                 {esAsesor ? "Asesor Comercial" : "Usuario Registrado"}
@@ -266,18 +240,17 @@ export default function PerfilScreen() {
               <Ionicons name="shield-checkmark" size={20} color={colors.primary} />
               <Text style={styles.seccionTitulo}>Seguridad</Text>
             </View>
-
             <TouchableOpacity
               style={styles.opcionCard}
-              onPress={handleRestablecerContrasena}
+              onPress={() => router.push("/perfil/cambiar-password")}
             >
               <View style={styles.opcionIconContainer}>
                 <Ionicons name="key" size={24} color={colors.primary} />
               </View>
               <View style={styles.opcionContent}>
-                <Text style={styles.opcionTitulo}>Restablecer Contraseña</Text>
+                <Text style={styles.opcionTitulo}>Cambiar Contraseña</Text>
                 <Text style={styles.opcionDescripcion}>
-                  Enviaremos un enlace a tu correo
+                  Actualiza tu contraseña de acceso
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />

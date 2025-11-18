@@ -86,9 +86,12 @@ export default function RootLayout() {
     if (cargando) return;
 
     const enAuth = segments[0] === "auth";
+    const enCallback = segments[1] === "callback";
+    const enNuevaPassword = segments[1] === "nueva-password";
 
     // Si hay usuario y está en auth (excepto callback y nueva-password), ir a tabs
-    if (usuario && enAuth && segments[1] !== "callback" && segments[1] !== "nueva-password") {
+    if (usuario && enAuth && !enCallback && !enNuevaPassword) {
+      console.log("📱 Usuario autenticado, redirigiendo a tabs");
       router.replace("/(tabs)");
     }
   }, [usuario, segments, cargando]);
