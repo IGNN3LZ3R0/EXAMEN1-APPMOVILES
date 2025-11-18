@@ -1,91 +1,198 @@
-import { Stack, useRouter, useSegments } from "expo-router";
-import { useEffect } from "react";
-import * as Linking from "expo-linking";
-import { useAuth } from "../../src/presentation/hooks/useAuth";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { supabase } from "../../src/data/services/supabaseClient";
+import { globalStyles } from "../../src/presentation/styles/globalStyles";
+import { colors, fontSize, spacing } from "../../src/presentation/styles/theme";
 
-export default function RootLayout() {
-  const { usuario, cargando } = useAuth();
-  const segments = useSegments();
+export default function AuthCallbackScreen() {
+  const params = useLocalSearchParams();
   const router = useRouter();
+  const [procesando, setProcesando] = useState(true);
+  const [mensaje, setMensaje] = useState("Procesando autenticación...");
+  const [debugInfo, setDebugInfo] = useState<string>("");
 
-  // Manejar deep links y URLs de Supabase
   useEffect(() => {
-    const handleDeepLink = (event: { url: string }) => {
-      const url = event.url;
-      console.log("🔗 URL recibida:", url);
-      
-      // Parsear URL
-      const parsedUrl = Linking.parse(url);
-      console.log("📦 URL parseada:", parsedUrl);
-      
-      // Caso 1: URL de Supabase (https://byttvwsfelhilmgpjvdj.supabase.co/auth/v1/verify)
-      if (url.includes('supabase.co/auth/v1/verify')) {
-        // Extraer parámetros de la URL de Supabase
-        const urlObj = new URL(url);
-        const token = urlObj.searchParams.get('token');
-        const type = urlObj.searchParams.get('type');
-        const redirectTo = urlObj.searchParams.get('redirect_to');
+    procesarCallback();
+  }, [params]);
+
+  const procesarCallback = async () => {
+    try {
+      console.log("📥 Todos los parámetros recibidos:", JSON.stringify(params, null, 2));
+
+      // Intentar extraer todos los posibles formatos de token
+      const token = params.token || 
+                   params.access_token || 
+                   params.token_hash ||
+                   params.confirmation_token ||
+                   params.recovery_token;
+                   
+      const type = params.type || params.token_type || params.event_type;
+      const refreshToken = params.refresh_token;
+
+      console.log("🔍 Valores extraídos:");
+      console.log("  - Token:", token ? "✓ Presente" : "✗ Ausente");
+      console.log("  - Type:", type);
+      console.log("  - Refresh Token:", refreshToken ? "✓ Presente" : "✗ Ausente");
+
+      // Si tenemos access_token y refresh_token, intentar establecer la sesión directamente
+      if (token && refreshToken) {
+        console.log("💾 Intentando establecer sesión con tokens...");
+        setMensaje("Estableciendo sesión...");
         
-        console.log("✉️ Parámetros Supabase:", { token, type, redirectTo });
-        
-        // Navegar al callback con los parámetros
-        router.push({
-          pathname: "/auth/callback",
-          params: {
-            token: token || '',
-            type: type || '',
-            access_token: token || '', // Supabase usa el token como access_token
-          } as any,
+        const { data, error } = await supabase.auth.setSession({
+          access_token: token as string,
+          refresh_token: refreshToken as string,
         });
+
+        if (error) {
+          console.error("❌ Error al establecer sesión:", error);
+          throw error;
+        }
+
+        console.log("✅ Sesión establecida correctamente");
+        
+        // Verificar si necesita cambiar contraseña
+        if (type === "recovery" || type === "password_recovery") {
+          setTimeout(() => {
+            router.replace("/auth/nueva-password");
+          }, 500);
+        } else {
+          Alert.alert(
+            "¡Autenticación Exitosa!",
+            "Tu sesión ha sido establecida correctamente.",
+            [
+              {
+                text: "Continuar",
+                onPress: () => router.replace("/(tabs)"),
+              },
+            ]
+          );
+        }
         return;
       }
-      
-      // Caso 2: Deep link directo (tigoplanes://auth-callback)
-      if (parsedUrl.hostname === "auth-callback" || parsedUrl.path === "auth-callback" || parsedUrl.path === "/auth/callback") {
-        const params = parsedUrl.queryParams || {};
-        console.log("🎯 Navegando a callback con params:", params);
-        router.push({
-          pathname: "/auth/callback",
-          params: params as any,
+
+      // Si solo tenemos token_hash, usar verifyOtp
+      if (token && !refreshToken) {
+        console.log("🔐 Intentando verificar OTP...");
+        
+        // Determinar el tipo de verificación
+        let otpType: 'signup' | 'recovery' | 'email' = 'email';
+        
+        if (type === "recovery" || type === "password_recovery") {
+          otpType = 'recovery';
+          setMensaje("Verificando enlace de recuperación...");
+        } else if (type === "signup" || type === "email") {
+          otpType = 'signup';
+          setMensaje("Verificando correo electrónico...");
+        }
+
+        const { data, error } = await supabase.auth.verifyOtp({
+          token_hash: token as string,
+          type: otpType,
         });
+
+        if (error) {
+          console.error("❌ Error al verificar OTP:", error);
+          throw error;
+        }
+
+        console.log("✅ OTP verificado exitosamente");
+        
+        if (otpType === 'recovery') {
+          setTimeout(() => {
+            router.replace("/auth/nueva-password");
+          }, 500);
+        } else {
+          Alert.alert(
+            "¡Cuenta Verificada!",
+            "Tu correo ha sido verificado. Ahora puedes iniciar sesión.",
+            [
+              {
+                text: "Ir al Login",
+                onPress: () => router.replace("/auth/login"),
+              },
+            ]
+          );
+        }
+        return;
       }
-    };
 
-    // Escuchar deep links mientras la app está abierta
-    const subscription = Linking.addEventListener("url", handleDeepLink);
+      // Si no hay token en absoluto
+      throw new Error("No se recibió ningún token de autenticación. Parámetros recibidos: " + Object.keys(params).join(", "));
 
-    // Verificar si la app se abrió con un deep link
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        console.log("🚀 App abierta con URL:", url);
-        handleDeepLink({ url });
-      }
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, []);
-
-  // Navegación basada en autenticación
-  useEffect(() => {
-    if (cargando) return;
-
-    const enAuth = segments[0] === "auth";
-
-    // Si HAY usuario y está en auth → Redirigir a tabs
-    // Excepto si está en callback o nueva-password
-    if (usuario && enAuth && segments[1] !== "callback" && segments[1] !== "nueva-password") {
-      router.replace("/(tabs)");
+    } catch (error: any) {
+      console.error("❌ Error completo en callback:", error);
+      setProcesando(false);
+      setMensaje("Error al procesar enlace");
+      
+      Alert.alert(
+        "Error de Autenticación",
+        error.message || "No se pudo procesar el enlace de autenticación. El enlace puede haber expirado o ser inválido.",
+        [
+          {
+            text: "Ver Detalles",
+            onPress: () => {
+              Alert.alert(
+                "Información de Depuración",
+                `Parámetros recibidos:\n${JSON.stringify(params, null, 2)}\n\nError:\n${error.message}`,
+                [{ text: "OK" }]
+              );
+            },
+          },
+          {
+            text: "Volver al Login",
+            onPress: () => router.replace("/auth/login"),
+          },
+        ]
+      );
     }
-  }, [usuario, segments, cargando]);
+  };
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="auth" />
-      <Stack.Screen name="plan" />
-      <Stack.Screen name="perfil" />
-    </Stack>
+    <View style={globalStyles.containerCentered}>
+      <View style={styles.iconContainer}>
+        {procesando ? (
+          <ActivityIndicator size="large" color={colors.primary} />
+        ) : (
+          <Ionicons name="alert-circle-outline" size={80} color={colors.danger} />
+        )}
+      </View>
+      
+      <Text style={styles.mensaje}>{mensaje}</Text>
+      
+      {procesando && (
+        <Text style={styles.submensaje}>
+          Por favor espera un momento...
+        </Text>
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  iconContainer: {
+    marginBottom: spacing.xl,
+  },
+  mensaje: {
+    fontSize: fontSize.lg,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    textAlign: "center",
+    marginBottom: spacing.sm,
+  },
+  submensaje: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    textAlign: "center",
+  },
+});

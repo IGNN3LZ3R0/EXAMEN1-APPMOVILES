@@ -8,46 +8,60 @@ export default function RootLayout() {
   const segments = useSegments();
   const router = useRouter();
 
-  // Manejar deep links y URLs de Supabase
+  // Manejar deep links
   useEffect(() => {
     const handleDeepLink = (event: { url: string }) => {
       const url = event.url;
-      console.log("🔗 URL recibida:", url);
+      console.log("🔗 Deep link recibido:", url);
       
-      // Parsear URL
-      const parsedUrl = Linking.parse(url);
-      console.log("📦 URL parseada:", parsedUrl);
-      
-      // Caso 1: URL de Supabase (https://byttvwsfelhilmgpjvdj.supabase.co/auth/v1/verify)
-      if (url.includes('supabase.co/auth/v1/verify')) {
-        // Extraer parámetros de la URL de Supabase
-        const urlObj = new URL(url);
-        const token = urlObj.searchParams.get('token');
-        const type = urlObj.searchParams.get('type');
-        const redirectTo = urlObj.searchParams.get('redirect_to');
+      try {
+        // Parsear URL completa
+        const parsedUrl = Linking.parse(url);
+        console.log("📦 URL parseada (Linking.parse):", parsedUrl);
         
-        console.log("✉️ Parámetros Supabase:", { token, type, redirectTo });
+        // También intentar parsear con URL nativa para capturar hash
+        let allParams: any = parsedUrl.queryParams || {};
         
-        // Navegar al callback con los parámetros
-        router.push({
-          pathname: "/auth/callback",
-          params: {
-            token: token || '',
-            type: type || '',
-            access_token: token || '', // Supabase usa el token como access_token
-          } as any,
-        });
-        return;
-      }
-      
-      // Caso 2: Deep link directo (tigoplanes://auth-callback)
-      if (parsedUrl.hostname === "auth-callback" || parsedUrl.path === "auth-callback" || parsedUrl.path === "/auth/callback") {
-        const params = parsedUrl.queryParams || {};
-        console.log("🎯 Navegando a callback con params:", params);
-        router.push({
-          pathname: "/auth/callback",
-          params: params as any,
-        });
+        // Si la URL tiene un hash (#), los parámetros pueden estar ahí
+        if (url.includes('#')) {
+          const hashPart = url.split('#')[1];
+          console.log("🔍 Hash encontrado:", hashPart);
+          
+          if (hashPart) {
+            // Parsear parámetros del hash
+            const hashParams = new URLSearchParams(hashPart);
+            hashParams.forEach((value, key) => {
+              allParams[key] = value;
+            });
+          }
+        }
+        
+        // También parsear query params normales si existen
+        if (url.includes('?')) {
+          const queryPart = url.split('?')[1]?.split('#')[0];
+          console.log("🔍 Query encontrada:", queryPart);
+          
+          if (queryPart) {
+            const queryParams = new URLSearchParams(queryPart);
+            queryParams.forEach((value, key) => {
+              allParams[key] = value;
+            });
+          }
+        }
+        
+        console.log("📋 Todos los parámetros combinados:", allParams);
+        
+        // Manejar tigoplanes://auth-callback
+        if (parsedUrl.hostname === "auth-callback" || parsedUrl.path === "auth-callback") {
+          console.log("🎯 Redirigiendo a callback con params:", allParams);
+          
+          router.push({
+            pathname: "/auth/callback",
+            params: allParams as any,
+          });
+        }
+      } catch (error) {
+        console.error("❌ Error al parsear deep link:", error);
       }
     };
 
@@ -57,7 +71,7 @@ export default function RootLayout() {
     // Verificar si la app se abrió con un deep link
     Linking.getInitialURL().then((url) => {
       if (url) {
-        console.log("🚀 App abierta con URL:", url);
+        console.log("🚀 App abierta con deep link:", url);
         handleDeepLink({ url });
       }
     });
@@ -73,8 +87,7 @@ export default function RootLayout() {
 
     const enAuth = segments[0] === "auth";
 
-    // Si HAY usuario y está en auth → Redirigir a tabs
-    // Excepto si está en callback o nueva-password
+    // Si hay usuario y está en auth (excepto callback y nueva-password), ir a tabs
     if (usuario && enAuth && segments[1] !== "callback" && segments[1] !== "nueva-password") {
       router.replace("/(tabs)");
     }

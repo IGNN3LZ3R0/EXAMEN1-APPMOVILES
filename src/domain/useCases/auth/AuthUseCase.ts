@@ -2,7 +2,7 @@ import { supabase } from "@/src/data/services/supabaseClient";
 import { Usuario } from "../../models/Usuario";
 
 export class AuthUseCase {
-  // URL fija para production
+  // URL para deep links
   private readonly REDIRECT_URL = "tigoplanes://auth-callback";
 
   /**
@@ -159,6 +159,8 @@ export class AuthUseCase {
    */
   onAuthStateChange(callback: (usuario: Usuario | null) => void) {
     return supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("🔐 Auth event:", event);
+      
       if (session?.user) {
         const usuario = await this.obtenerUsuarioActual();
         callback(usuario);

@@ -28,24 +28,10 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "autoVerify": true,
           "data": [
             {
-              "scheme": "https",
-              "host": "byttvwsfelhilmgpjvdj.supabase.co",
-              "pathPrefix": "/auth/v1"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        },
-        {
-          "action": "VIEW",
-          "data": [
-            {
-              "scheme": "tigoplanes"
+              "scheme": "tigoplanes",
+              "host": "auth-callback"
             }
           ],
           "category": [
