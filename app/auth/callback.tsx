@@ -1,7 +1,7 @@
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 import * as Linking from "expo-linking";
-import { useAuth } from "../src/presentation/hooks/useAuth";
+import { useAuth } from "../../src/presentation/hooks/useAuth";
 
 export default function RootLayout() {
   const { usuario, cargando } = useAuth();

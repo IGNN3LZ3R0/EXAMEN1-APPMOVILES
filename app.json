@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Tigo Planes",
-    "slug": "examen1",
+    "slug": "tigo-planes",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -10,11 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tigo.planes",
-      "associatedDomains": [
-        "applinks:tigoplanes.app",
-        "applinks:*.supabase.co"
-      ]
+      "bundleIdentifier": "com.tigo.planes"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,10 +19,11 @@
       },
       "package": "com.tigo.planes",
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "READ_MEDIA_IMAGES"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.RECORD_AUDIO"
       ],
       "intentFilters": [
         {
@@ -34,12 +31,21 @@
           "autoVerify": true,
           "data": [
             {
-              "scheme": "tigoplanes"
-            },
-            {
               "scheme": "https",
-              "host": "*.supabase.co",
-              "pathPrefix": "/auth/v1/verify"
+              "host": "byttvwsfelhilmgpjvdj.supabase.co",
+              "pathPrefix": "/auth/v1"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "tigoplanes"
             }
           ],
           "category": [
@@ -47,9 +53,7 @@
             "DEFAULT"
           ]
         }
-      ],
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      ]
     },
     "web": {
       "output": "static",
@@ -57,6 +61,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-dev-client",
       [
         "expo-splash-screen",
         {
@@ -77,12 +82,14 @@
       ]
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     },
     "extra": {
       "router": {
         "origin": false
+      },
+      "eas": {
+        "projectId": "8d83a29d-5fa8-4f1a-826f-4ce8e70c546c"
       }
     }
   }

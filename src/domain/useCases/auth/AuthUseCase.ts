@@ -2,6 +2,9 @@ import { supabase } from "@/src/data/services/supabaseClient";
 import { Usuario } from "../../models/Usuario";
 
 export class AuthUseCase {
+  // URL fija para production
+  private readonly REDIRECT_URL = "tigoplanes://auth-callback";
+
   /**
    * Registrar nuevo usuario con nombre y teléfono
    */
@@ -16,14 +19,12 @@ export class AuthUseCase {
             nombre,
             telefono,
           },
+          emailRedirectTo: this.REDIRECT_URL,
         },
       });
 
       if (authError) throw authError;
       if (!authData.user) throw new Error("No se pudo crear el usuario");
-
-      // El trigger handle_new_user() copiará automáticamente
-      // nombre, telefono y rol desde raw_user_meta_data
 
       return { success: true, user: authData.user };
     } catch (error: any) {
@@ -125,7 +126,7 @@ export class AuthUseCase {
   async restablecerContrasena(email: string) {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: "tigoplanes://reset-password",
+        redirectTo: this.REDIRECT_URL,
       });
 
       if (error) throw error;
